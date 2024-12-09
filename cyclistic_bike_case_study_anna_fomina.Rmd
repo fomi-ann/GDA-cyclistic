@@ -1,0 +1,1305 @@
+---
+title: "Google Capstone Analysis"
+author: "Anna Fomina"
+date: "2024-02-04"
+output: html_document
+---
+
+# GOOGLE DATA ANALYTICS
+
+## CASE STUDY: How does a bike-share navigate speedy success?
+
+### Introduction
+
+In this case study, I will conduct a descriptive  time series data analysis for a fictional bikeshare company, Cyclistic. In order to identify trends and answer the business question, I will follow the 6 steps of data analysis process: **Ask, Prepare, Process, Analyze, Share,** and **Act**.
+
+### Project Description
+
+In 2016, Cyclistic launched a successful bike-share offering.
+Since then, the program has grown to a fleet of 5,824 bicycles that are geotracked and locked into a network of 692 stations across Chicago.
+The bikes can be unlocked from one station and returned to any other station in the system anytime.
+
+Until now, Cyclistic’s marketing strategy relied on building general awareness and appealing to broad consumer segments. One approach that helped make these things possible was the flexibility of its pricing plans: single-ride passes, full-day passes, and annual memberships. Customers who purchase single-ride or full-day passes are referred to as casual riders. Customers who purchase annual memberships are Cyclistic members.
+
+Cyclistic’s finance analysts have concluded that annual members are much more profitable than casual riders. Although the pricing flexibility helps Cyclistic attract more customers, the marketing director believes that maximizing the number of annual members will be key to future growth. Therefore, the team wants to understand **How casual riders and annual members use Cyclistic bikes differently**.
+These insights, will help design a new marketing strategy to convert casual riders into annual members.
+
+## 1. ASK
+
+### Bussiness question
+
+How do annual members and casual riders use Cyclistic bikes differently?
+
+## 2. PREPARE
+
+### 2.1 Tools
+
+*R, RStudio* for data cleaning, analysis, documentation and visualisation.
+Packages: tidyverse, lubridate, janitor, DescTools
+
+```{r}
+# Setting CRAN mirror to 0-Cloud.
+# This line sets the default CRAN mirror to the 0-Cloud mirror, which is located at <https://cran.r-project.org/>.
+options(repos = "https://cran.r-project.org/")
+```
+
+### 2.2 Installing packages
+
+```{r}
+install.packages("tidyverse")
+install.packages('lubridate')
+install.packages('janitor')
+install.packages("skimr")
+```
+
+### 2.3 Loading libraries
+
+```{r}
+library(readr)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(hms)
+library(skimr)
+```
+
+### 2.4 About data
+
+I am utilizing the 2023 bike trip data records provided by Motivate International Inc. under the terms of [this license agreement](https://divvybikes.com/data-license-agreement).
+The data is divided into 12 CSV files, each corresponding to a different month.
+
+Data is reliable, original, comprehensive, current, and properly cited. It serves as a valuable tool for gaining insights into variations in customer behavior and for pinpointing trends crucial for crafting effective marketing strategies.
+
+### 2.5 Loading CSV files
+
+Using the *read.csv()* function to open CSV files and save them as a data frames with a descriptive name.
+
+```{r}
+jan_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202301-divvy-tripdata.csv")
+feb_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202302-divvy-tripdata.csv")
+mar_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202303-divvy-tripdata.csv")
+apr_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202304-divvy-tripdata.csv")
+mai_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202305-divvy-tripdata.csv")
+jun_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202306-divvy-tripdata.csv")
+jul_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202307-divvy-tripdata.csv")
+aug_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202308-divvy-tripdata.csv")
+sep_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202309-divvy-tripdata.csv")
+oct_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202310-divvy-tripdata.csv")
+nov_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202311-divvy-tripdata.csv")
+dec_2023_bike_data = read.csv("C:\\Users\\annfo\\OneDrive\\Desktop\\GDA capstone project\\divvy-tripdata\\202312-divvy-tripdata.csv")
+```
+
+Each file contains 13 columns: ride_id, rideable_type, started_at, ended_at, start_station_name, start_station_id, end_station_name, end_station_id, start_lat, start_lng, end_lat, end_lng, and member_casual.
+All columns are formatted as strings, except for those describing the ride start/end location (start_lat, start_lng, end_lat, end_lng), which are represented as numerical values.
+Here's a quick overview of the metadata for the January dataset:
+
+```{r}
+str(jan_2023_bike_data)
+colnames(jan_2023_bike_data)
+```
+
+## 3. PROCESS
+
+### 3.1 Merging monthly data into one data frame *bike_data_2023*
+
+Total observation count: 5 719 877   
+
+```{r}
+bike_data_2023 <- rbind(jan_2023_bike_data, feb_2023_bike_data, mar_2023_bike_data, apr_2023_bike_data, mai_2023_bike_data, jun_2023_bike_data, jul_2023_bike_data, aug_2023_bike_data, sep_2023_bike_data, oct_2023_bike_data, nov_2023_bike_data, dec_2023_bike_data)
+```
+
+Reviewing new data frame:
+
+```{r}
+#Number of row
+nrow(bike_data_2023)
+
+#Number of columns
+ncol(bike_data_2023)
+```
+```{r}
+#First few rows of bike_data_2023 dataset, column names, data types
+glimpse(bike_data_2023)
+
+#Structure of bike_data_2023 dataset, data types, first few values of each variable
+str(bike_data_2023)
+```
+
+NA values in end_lat and end_lng
+
+```{r}
+#Statistical summary of the variables in bike_data_2023 dataset
+summary(bike_data_2023)
+```
+
+First and last rows.
+
+```{r}
+#First
+head(bike_data_2023)
+
+#Last
+tail(bike_data_2023)
+```
+
+No duplicates in ride_id all rows in data frame have a unique IDs.
+Some rows are missing start/end station data.
+6990 have NA values in end_lat, end_lng.
+
+```{r}
+#Statistical summary, data types, missing values, quantiles for numerical variables, frequency counts for categorical variables
+skim_without_charts(bike_data_2023)
+```
+### 3.2 Data cleaning: Formating data and creating additional colums for future calculations and agregation
+
+#### 3.2.1 Changing strings in *started_at* and *ended_at* columns to DATE-TIME format
+
+Using the *ymd_hms()* funcion of lubridate package.
+
+```{r}
+bike_data_2023$started_at <- ymd_hms(bike_data_2023$started_at)
+bike_data_2023$ended_at <- ymd_hms(bike_data_2023$ended_at)
+```
+
+#### 3.2.2 Calculating *ride lengths*
+
+Saving calculated ride duration into *ride_length* column and updating the *ride_data_2023* dataframe.
+Results are in seconds.
+
+```{r}
+bike_data_2023 <- bike_data_2023 %>%
+  mutate(ride_length = as.numeric(ended_at - started_at))
+```
+
+#### 3.2.3 Creating column to store the *month* when rides took place
+
+```{r}
+bike_data_2023 <- bike_data_2023 %>%
+  mutate(month = month(started_at, label = TRUE, abbr = FALSE)) #Getting month names
+
+#Ordering months Jan, Feb, ... , Dec
+bike_data_2023$month <- factor(bike_data_2023$month, levels = month.name, ordered = TRUE)
+```
+
+#### 3.2.4 Creating column to store the *day* when rides took place
+
+wday() function returns numbers for each week day where 1 = Sunday ... 7 = Saturday. Storing *weekday names* in separate column for quick reference.
+
+```{r}
+bike_data_2023 <- bike_data_2023 %>%
+  mutate(day_of_week_numeric = wday(started_at),
+         day_of_week = factor(weekdays(started_at), levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")))
+```
+
+#### 3.2.4 Filtering out *workdays* and *weekends*.
+
+```{r}
+#Workdays vs weekends, new column
+bike_data_2023 <- bike_data_2023 %>%
+  mutate(workday_weekend = ifelse(weekdays(started_at) %in% c("Saturday", "Sunday"), "Weekend", "Workday"))
+```
+
+#### 3.2.5 Creating column to store the *time* when rides took place. (24h format)
+
+For my analisys I will group data by hour, dropping minutes.
+
+```{r}
+#Hour at which rides started.
+bike_data_2023 <- bike_data_2023 %>%
+  mutate(start_hour = hour(started_at))
+```
+
+### 3.3 Station data
+
+#### 3.3.1 Attempting to recover station names and IDs
+
+I will try to retrieve station data, recognizing that while some rows may lack start/end station names and IDs, the majority still contain latitude and longitude data. To achieve this goal, I will look at combinations of minimum and maximum values in latitude and longitude within rows possessing complete ride information and seek out similar coordinates in rows where start station names and IDs are absent. This process will involve both the "raw" and rounded latitude/longitude data. Given that my analysis primarily focuses on differences in ride length and ride count between two customer types, this step will play a part in identifying the most popular stations.
+```{r}
+bike_data_2023$start_lat <- as.numeric(bike_data_2023$start_lat)
+bike_data_2023$start_lng <- as.numeric(bike_data_2023$start_lng)
+bike_data_2023$end_lat <- as.numeric(bike_data_2023$end_lat)
+bike_data_2023$end_lng <- as.numeric(bike_data_2023$end_lng)
+
+bike_data_2023 <- bike_data_2023 %>%
+  mutate(start_lat_round = as.numeric(round(start_lat, digits = 2)),
+        start_lng_round = as.numeric(round(start_lng, digits = 2)),
+        end_lat_round = as.numeric(round(end_lat, digits = 2)),
+        end_lng_round = as.numeric(round(end_lng, digits = 2)))
+```
+
+#### 3.3.3 Generating tables containing complete station data for filling in missing fields in bike_data_2023
+
+```{r}
+#Creating table for Start Station lat/lng values
+start_station_info <- bike_data_2023 %>%
+  filter(!is.na(start_station_name) & start_station_name != "" &
+         !is.na(start_station_id) & start_station_id != "") %>%
+  mutate(
+    start_lat = as.numeric(start_lat),
+    start_lng = as.numeric(start_lng)
+  ) %>%
+  group_by(station_name = start_station_name, station_id = start_station_id, .groups = "drop") %>%
+  summarize(
+    min_lat = min(start_lat, na.rm = TRUE),
+    max_lat = max(start_lat, na.rm = TRUE),
+    min_lng = min(start_lng, na.rm = TRUE),
+    max_lng = max(start_lng, na.rm = TRUE)
+  ) %>%
+  mutate(
+    rounded_min_lat = round(min_lat, 2),
+    rounded_max_lat = round(max_lat, 2),
+    rounded_min_lng = round(min_lng, 2),
+    rounded_max_lng = round(max_lng, 2)
+  ) %>%
+  ungroup()
+
+#Creating table for End Station lat/lng values
+end_station_info <- bike_data_2023 %>%
+  filter(!is.na(end_station_name) & end_station_name != "" &
+         !is.na(end_station_id) & end_station_id != "") %>%
+  mutate(
+    end_lat = as.numeric(end_lat),
+    end_lng = as.numeric(end_lng)
+  ) %>%
+  group_by(station_name = end_station_name, station_id = end_station_id, .groups = "drop") %>%
+  summarize(
+    min_lat = min(end_lat, na.rm = TRUE),
+    max_lat = max(end_lat, na.rm = TRUE),
+    min_lng = min(end_lng, na.rm = TRUE),
+    max_lng = max(end_lng, na.rm = TRUE)
+  ) %>%
+  mutate(
+    rounded_min_lat = round(min_lat, 2),
+    rounded_max_lat = round(max_lat, 2),
+    rounded_min_lng = round(min_lng, 2),
+    rounded_max_lng = round(max_lng, 2)
+  ) %>%
+  ungroup()
+```
+
+#### 3.3.4 Creating function for generating conditions
+
+The function will generate conditions of **min ≤ value ≤ max** for latitude and longitude values from two dataframes. A slight tolerance is added to expand the value range for consideration.
+```{r}
+#Adding tolerance
+tolerance <- 0.002
+
+#Creating function
+generate_condition <- function(data, 
+                               station_name_column, 
+                               station_id_column, 
+                               lat_column, 
+                               lng_column,
+                               round_lat_column,
+                               round_lng_column,
+                               station_info) {
+  condition <- data[[station_name_column]] == "" & data[[station_id_column]] == "" &
+    (
+      data[[lat_column]] >= station_info$min_lat - tolerance & 
+      data[[lat_column]] <= station_info$max_lat + tolerance &
+      data[[lng_column]] >= station_info$min_lng - tolerance &
+      data[[lng_column]] <= station_info$max_lng + tolerance
+    ) |
+    (
+      data[[round_lat_column]] >= station_info$rounded_min_lat &
+      data[[round_lat_column]] <= station_info$rounded_max_lat &
+      data[[round_lng_column]] >= station_info$rounded_min_lng &
+      data[[round_lng_column]] <= station_info$rounded_max_lng
+    )
+  
+  return(condition)
+}
+```
+
+#### 3.3.5 Generating conitions to fill in empty cells
+
+```{r}
+#Generate conditions for Start stations using Start station info
+condition_start <- generate_condition(
+  bike_data_2023,
+  "start_station_name",
+  "start_station_id",
+  "start_lat",
+  "start_lng",
+  "start_lat_round",
+  "start_lng_round",
+  start_station_info
+)
+
+#Generate conditions for End stations using End station info
+condition_end <- generate_condition(
+  bike_data_2023,
+  "end_station_name",
+  "end_station_id",
+  "end_lat",
+  "end_lng",
+  "end_lat_round",
+  "end_lat_round",
+  end_station_info
+)
+```
+
+#### 3.3.6 Applying the same principles, I am utilizing Start station data to restore End stations and vice versa
+
+```{r}
+#Generate conditions for Start stations using End Station info
+condition_start_from_end <- generate_condition(
+  bike_data_2023,
+  "start_station_name",
+  "start_station_id",
+  "start_lat",
+  "start_lng",
+  "start_lat_round",
+  "start_lng_round",
+  end_station_info
+)
+#Generate conditions for End Stations using start Station info
+condition_end_from_start <- generate_condition(
+  bike_data_2023,
+  "end_station_name",
+  "end_station_id",
+  "end_lat",
+  "end_lng",
+  "end_lat_round",
+  "end_lat_round",
+  start_station_info
+)
+```
+
+#### 3.3.7 Adding station data to the duplicated dataframe for later review of changes
+```{r}
+#Updating bike_data_2023 Start Stations & End Stations
+bike_data_2023_2 <- bike_data_2023 %>%
+  mutate(
+    start_station_name = ifelse(condition_start, start_station_info$station_name, start_station_name),
+    start_station_id = ifelse(condition_start, start_station_info$station_id, start_station_id),
+    end_station_name = ifelse(condition_end, end_station_info$station_name, end_station_name),
+    end_station_id = ifelse(condition_end, end_station_info$station_id, end_station_id),
+    
+    start_station_name = ifelse(condition_start_from_end, end_station_info$station_name, start_station_name),
+    start_station_id = ifelse(condition_start_from_end, end_station_info$station_id, start_station_id),
+    end_station_name = ifelse(condition_end_from_start, start_station_info$station_name, end_station_name),
+    end_station_id = ifelse(condition_end_from_start, start_station_info$station_id, end_station_id)
+  )
+```
+
+#### 3.3.8 Reviewing changes in data
+```{r}
+#Comparing to unaltered Start stations
+#bike_data_2023 %>%
+  #filter(start_station_name == "" & start_station_id == "")
+
+#bike_data_2023_2 %>%
+  #filter(start_station_name == "" & start_station_id == "")
+
+#Comparing to unaltered End stations
+#bike_data_2023 %>%
+  #filter(end_station_name == "" & end_station_id == "")
+
+#bike_data_2023_2 %>%
+  #filter(end_station_name == "" & end_station_id == "")
+```
+Review:
+Total nr of values restored for Start Stations: 77 463
+Total nr of values restored for End Stations: 76 937
+
+#### 3.3.9 Updating original data frame *bike_data_2023*
+
+```{r}
+bike_data_2023 <- bike_data_2023_2
+```
+
+#### 3.3.10 Bike maintenance station names and IDs
+
+To maintain the integrity of analysis, rides to and from stations designated for storing, repairing, testing, or charging bikes are filtered out and removed.
+
+```{r}
+#Start Stations
+check_start_station <- bike_data_2023 %>%
+  distinct(station_name = start_station_name, station_id = start_station_id)
+#print(check_start_station)
+
+#Bike service stops Start stations
+check_test_start_station <- bike_data_2023 %>%
+   filter(
+    grepl("test", start_station_id, ignore.case = TRUE) |
+    grepl("test", start_station_name, ignore.case = TRUE) |
+    grepl("warehouse", start_station_id, ignore.case = TRUE) |
+    grepl("warehouse", start_station_name, ignore.case = TRUE) |
+    grepl("divvy", start_station_id, ignore.case = TRUE) |
+    grepl("divvy", start_station_name, ignore.case = TRUE) |
+    grepl("charging", start_station_id, ignore.case = TRUE) |
+    grepl("charging", start_station_name, ignore.case = TRUE)
+  ) %>%
+  count(start_station_name, start_station_id)
+#print(check_test_start_station)
+
+#End Stations
+check_end_station <- bike_data_2023 %>%
+  distinct(station_name = end_station_name, station_id = end_station_id)
+#print(check_end_station)
+
+#Bike service stops End stations
+check_test_end_station <- bike_data_2023 %>%
+  filter(
+    grepl("test", end_station_id, ignore.case = TRUE) |
+    grepl("test", end_station_name, ignore.case = TRUE) |
+    grepl("warehouse", end_station_id, ignore.case = TRUE) |
+    grepl("warehouse", end_station_name, ignore.case = TRUE) |
+    grepl("divvy", end_station_id, ignore.case = TRUE) |
+    grepl("divvy", end_station_name, ignore.case = TRUE) |
+    grepl("charging", end_station_id, ignore.case = TRUE) |
+    grepl("charging", end_station_name, ignore.case = TRUE)
+  ) %>%
+  count(end_station_name, end_station_id)
+#print(check_test_end_station)
+```
+
+### 3.4 Removing insufficient data
+
+#### 3.4.1 Removing maintenance rides
+
+```{r}
+#Deleting rides that started from service station
+bike_data_2023 <- subset(bike_data_2023, !(start_station_name %in% check_test_start_station$start_station_name))
+
+#Deleting rides that ended at service station
+bike_data_2023 <- subset(bike_data_2023, !(end_station_name %in% check_test_end_station$end_station_name))
+```
+
+#### 3.4.2 Removing rides where all 4 columns are NA (NA only in end stations)
+
+```{r}
+bike_data_2023_2 <- subset(bike_data_2023_2, !(is.na(end_lat) & is.na(end_lng) & end_station_name == "" & end_station_id == ""))
+```
+
+#### 3.4.3 Removing rides that are less than 1 minute (60 seconds) and longer than one day (86400 seconds).
+
+At the beginning, it's been made clear that rides shouldn't surpass 24 hours. Any entries with timestamps exceeding this limit are considered errors and aren't suitable for analyzing. Additionally, rides lasting less than a minute will also be excluded from the analysis, as they're likely to be due to human error.
+```{r}
+bike_data_2023 <- subset(bike_data_2023, ride_length >= 60 & ride_length <= 86400)
+```
+
+## 4. ANALYZE
+
+### 4.1 Average ride length
+
+#### 4.1.1 Average ride length by month, weekday, and customer type
+
+```{r}
+#Average ride length by month, weekday, and customer type
+bike_avg_ride_length <- bike_data_2023 %>%
+  group_by(month, day_of_week, member_casual) %>%
+  summarize(avg_ride_length = round(mean(ride_length)), .groups = "drop")
+
+print(bike_avg_ride_length)
+```
+
+#### 4.1.2 Average ride length by month and customer type
+
+```{r}
+#Average ride length by month and customer type
+bike_avg_ride_length_month <- bike_data_2023 %>%
+  group_by(month, member_casual) %>%
+  summarize(avg_ride_length_month = round(mean(ride_length)), .groups = "drop")
+
+#Converting seconds to MM:SS for chart
+bike_avg_ride_length_month$ride_length_min_sec <- sprintf("%02d:%02d", 
+                                              bike_avg_ride_length_month$avg_ride_length_month %/% 60, 
+                                              bike_avg_ride_length_month$avg_ride_length_month %% 60)
+print(bike_avg_ride_length_month)
+```
+
+#### 4.1.3 Average ride length by weekday and customer type
+
+```{r}
+#Average ride length by weekday and customer type
+bike_avg_ride_length_week <- bike_data_2023 %>%
+  group_by(day_of_week, member_casual) %>%
+  summarize(avg_ride_length_week = round(mean(ride_length)), .groups = "drop")
+
+#print(bike_avg_ride_length_week)
+```
+
+#### 4.1.4 Average ride length by customer type
+
+```{r}
+#Average ride length by customer type
+bike_avg_ride_length_member_type <- bike_data_2023 %>%
+  group_by(member_casual) %>%
+  summarize(avg_ride_length_member_type = round(mean(ride_length)))
+
+bike_avg_ride_length_member_type$ride_length_min_sec <- sprintf("%02d:%02d", 
+                                              bike_avg_ride_length_member_type$avg_ride_length_member_type %/% 60, 
+                                              bike_avg_ride_length_member_type$avg_ride_length_member_type %% 60)
+
+print(bike_avg_ride_length_member_type)
+```
+#### 4.1.5 Increase in average ride length by customer type
+
+```{r}
+#Calculate the increase in average ride length by customer type
+bike_avg_ride_length_month_increase <- bike_avg_ride_length_month %>%
+  arrange(month) %>%  
+  group_by(member_casual) %>%
+  mutate(avg_ride_length_previous_month = lag(avg_ride_length_month),
+         increase_vs_previous_month = avg_ride_length_month - avg_ride_length_previous_month) %>%
+  ungroup()
+
+print(bike_avg_ride_length_month_increase)
+```
+
+#### 4.1.6 Days with longest and shortest average ride length
+
+The days with the longest average ride length for both member and casual riders were weekends, specifically Sundays in May for casual riders and Saturdays in June for members.
+Conversely, the days with the shortest average ride length for both member and casual riders were Tuesdays in January.
+
+```{r}
+sorted_bike_avg_ride_length <- bike_avg_ride_length %>%
+  arrange(member_casual, desc(avg_ride_length))
+
+#Days with longest average ride length
+max_avg <- sorted_bike_avg_ride_length %>%
+  group_by(member_casual) %>%
+  slice_max(order_by = avg_ride_length)
+
+#Days with shortest average ride length
+min_avg <- sorted_bike_avg_ride_length %>%
+  group_by(member_casual) %>%
+  slice_min(order_by = avg_ride_length)
+
+max_avg$avg_ride_length_hms <- as_hms(max_avg$avg_ride_length)
+min_avg$avg_ride_length_hms <- as_hms(min_avg$avg_ride_length)
+
+print(max_avg)
+print(min_avg)
+print(sorted_bike_avg_ride_length)
+```
+
+### 4.2 Ride counts
+
+#### 4.2.1 Ride count by month, weekday, and customer type
+
+```{r}
+#Ride count by month, weekday, and customer type
+bike_ride_count <- bike_data_2023 %>%
+  group_by(month, day_of_week, member_casual) %>%
+  summarize(ride_count = n(), .groups = "drop")
+
+print(bike_ride_count)
+```
+
+#### 4.2.2 Ride count by month and customer type
+
+```{r}
+#Ride count by month and customer type
+bike_ride_count_month <- bike_data_2023 %>%
+  group_by(month, member_casual) %>%
+  summarize(ride_count_month = n())
+
+print(bike_ride_count_month)
+```
+
+##### 4.2.2.1 Top months by ride count and customer type from high to low
+
+```{r}
+#Months by ride count and customer type from high to low
+ordered_ride_count_month <- bike_ride_count_month %>%
+  arrange(member_casual, desc(ride_count_month))
+
+print(ordered_ride_count_month)
+
+#Member
+ordered_ride_count_month_member <- ordered_ride_count_month %>%
+   filter(member_casual == "member")
+
+print(ordered_ride_count_month_member)
+
+#Casual
+ordered_ride_count_month_casual <- ordered_ride_count_month %>%
+   filter(member_casual == "casual")
+
+print(ordered_ride_count_month_casual)
+```
+
+#### 4.2.3 Ride count by weekday and customer type
+
+```{r}
+#Ride count by weekday and customer type
+bike_ride_count_week <- bike_data_2023 %>%
+  group_by(day_of_week, member_casual) %>%
+  summarize(ride_count_week = n(), .groups = "drop")
+
+print(bike_ride_count_week)
+```
+
+#### 4.2.4 Ride count by hour, wekday and customer type
+
+```{r}
+##Ride count by hour, weekday and customer type
+rides_by_hour <- bike_data_2023 %>%
+  group_by(member_casual, workday_weekend, start_hour) %>%
+  summarise(ride_count = n(), .groups = "drop")
+
+print(bike_ride_count_week)
+
+#Filtering out workdays
+rides_by_hour_workdays_casual <- filter(rides_by_hour, workday_weekend == "Workday", member_casual == "casual")
+rides_by_hour_workdays_member <- filter(rides_by_hour, workday_weekend == "Workday", member_casual == "member")
+
+print(rides_by_hour_workdays_casual)
+print(rides_by_hour_workdays_member)
+
+#Filtering out weekends
+rides_by_hour_weekends_casual <- filter(rides_by_hour, workday_weekend == "Weekend", member_casual == "casual")
+rides_by_hour_weekends_member <- filter(rides_by_hour, workday_weekend == "Weekend", member_casual == "member")
+
+print(rides_by_hour_weekends_casual)
+print(rides_by_hour_weekends_member)
+```
+
+#### 4.2.5 Ride count by customer type
+
+```{r}
+#Ride count by customer type
+bike_ride_count_member_type <- bike_data_2023 %>%
+  group_by(member_casual) %>%
+  summarize(ride_count_member_type = n()) %>% #For pie chart
+  ungroup() %>%
+  mutate(percentages_ride_count_member_type = round(ride_count_member_type / sum(ride_count_member_type), 2)) %>%
+  arrange(percentages_ride_count_member_type) %>%
+  mutate(labels_ride_count_member_type_perc = scales::percent(percentages_ride_count_member_type))
+
+print(bike_ride_count_member_type)
+```
+
+### 4.3 Distribution of rideable types by customer type
+
+```{r}
+#Distribution of rideable types by customer type
+rideable_summary <- bike_data_2023 %>%
+  group_by(member_casual, rideable_type) %>%
+  summarize(rides_count = n(), .groups = "drop") %>%
+  mutate(percentages_rideable_type = round(rides_count / sum(rides_count), 2)) %>%
+  arrange(percentages_rideable_type) %>%
+  mutate(labels_rideable_type_perc = scales::percent(percentages_rideable_type))
+
+rideable_summary$lab_name <- paste(rideable_summary$member_casual, rideable_summary$rideable_type)
+
+print(rideable_summary)
+```
+
+### 4.4 Calculating the *mode* of week days
+
+The most popular day among customers to ride Cyclist bikes is Saturday (7).
+
+```{r}
+mode_day_of_week <- bike_data_2023 %>%
+  group_by(day_of_week) %>%
+  summarise(freq = n()) %>%
+  filter(freq == max(freq)) %>%
+  pull(day_of_week)
+
+print(mode_day_of_week)
+```
+
+### 4.5 Calculating *median* ride length
+
+```{r}
+#Median ride length for casual customers
+median_ride_length_casual <- median(bike_data_2023$ride_length[bike_data_2023$member_casual == "casual"])
+
+#Median ride length for member customers
+median_ride_length_member <- median(bike_data_2023$ride_length[bike_data_2023$member_casual == "member"])
+
+print(paste("Median ride length for casual customers:", median_ride_length_casual, "seconds."))
+print(paste("Median ride length for member customers:", median_ride_length_member, "seconds."))
+
+print(paste("Median ride length for casual customers:", (floor(median_ride_length_casual/60)), "minutes and ", (median_ride_length_casual - (floor(median_ride_length_casual/60)*60)), "seconds."))
+print(paste("Median ride length for member customers:", (floor(median_ride_length_member/60)), "minutes and ", (median_ride_length_member - (floor(median_ride_length_member/60)*60)), "seconds."))
+
+```
+
+### 4.6 15 Top 15 most popular stations by ride count
+
+```{r}
+#Top 15 most popular stations by ride count
+station_top <- bike_data_2023 %>%
+  filter(start_station_name != "" & start_station_id != "") %>%
+  group_by(start_station_name, start_station_id) %>%
+  summarize(ride_count = n(), .groups = "drop") %>%
+  arrange(desc(ride_count)) %>%
+  top_n(15)
+
+print(station_top)
+```
+
+## 5. VISUALIZE(SHARE)
+
+### 5.1 Average ride length
+
+#### 5.1.1 Average ride length by month, weekday, and customer type
+
+This graph visualizes the average ride length during weekdays across different months.
+Each subplot represents a month, showing the distribution of average ride length by day of the week.
+The x-axis represents the days of the week, while the y-axis represents the average ride length.
+Bars are colored based on the type of member (casual or member).
+
+```{r}
+#Variables
+y_breaks <- seq(0, 1800, by = 300)
+y_labels <-c ("0", "5 min", "10 min", "15 min", "20 min", "25 min", "30 min")
+
+
+#Creating facet-plots to visualize data for each month
+#Average ride length by month, weekday, and customer type
+plot_1_01 <- ggplot(bike_avg_ride_length, aes(x = day_of_week, y = avg_ride_length, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Week day", y = "Average ride length", fill = "Customer type", title = "Average ride length by month, weekday, and customer type") +
+  facet_wrap(~month, scales = "fixed") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_1_01)
+ggsave("plot-1-01.png", plot = plot_1_01, width = 10, height = 6)
+```
+
+From this chart, it's clear that on weekdays, the average ride length for Members consistently falls within the range of 10 to 12.5 minutes.
+However, there are occasional spikes beyond the 12.5-minute threshold on select weekdays from May to September.
+Interestingly, Members' ride lengths remain relatively consistent throughout the year, regardless of the season.
+On the other hand, Casual riders show an increase in trip duration during warmer months.
+
+```{r}
+#Adding two horisontal lines to plot to increace readability
+plot_1_02 <- ggplot(bike_avg_ride_length, aes(x = day_of_week, y = avg_ride_length, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Week day", y = "Average ride length", fill = "Customer type", title = "Average ride length by month, weekday, and customer type") +
+  facet_wrap(~month, scales = "fixed") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 600, color = "black", linetype = "solid", linewidth = 0.5) +
+  geom_hline(yintercept = 750, color = "black", linetype = "solid", linewidth = 0.5)
+
+print(plot_1_02)
+ggsave("plot-1-02.png", plot = plot_1_02, width = 10, height = 6)
+```
+
+#### 5.1.2 Average ride length by month and customer type
+
+This graph illustrates the average ride length during different months, categorized by the type of member (casual or member).
+Each bar represents a specific month, and the height of the bar corresponds to the average ride length for that month.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 1800, by = 300)
+y_labels <-c ("0", "5 min", "10 min", "15 min", "20 min", "25 min", "30 min")
+
+#Average ride length by month and customer type
+plot_1_03 <- ggplot(bike_avg_ride_length_month, aes(x = month, y = avg_ride_length_month, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  geom_text(aes(label = ride_length_min_sec), vjust = -0.5) +
+  labs(x = "Month", y = "Average ride length", title = "Average ride length by month and customer type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_1_03)
+ggsave("plot-1-03.png", plot = plot_1_03, width = 10, height = 6)
+```
+
+In conclusion, this chart reinforces the observation of an increase in the average ride length during warmer months.
+Additionally, it highlights that the range of ride length variation for Member riders remains within a 5-minute span, whereas for Casual riders, it's approximately 10 minutes.
+
+#### 5.1.3 Average ride length by weekday and customer type
+
+This graph presents the yearly summary of average ride length during weekdays.
+It provides an overview of the average ride length across all months aggregated into a single plot.
+Similar to the monthly graph, the x-axis represents the days of the week, the y-axis represents the average ride length, and bars are colored based on the type of member.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 1800, by = 300)
+y_labels <-c ("0", "5 min", "10 min", "15 min", "20 min", "25 min", "30 min")
+
+plot_1_04 <- ggplot(bike_avg_ride_length_week, aes(x = day_of_week, y = avg_ride_length_week, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Week day", y = "Average ride length", title = "Average ride length by weekday and customer type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_1_04)
+ggsave("plot-1-04.png", plot = plot_1_04, width = 10, height = 6)
+```
+
+The trends in data distribution for Casual and Member riders are similar.
+Both groups tend to have longer ride lengths on weekends.
+However, Casual riders demonstrate more variability between data points throughout the week, whereas Members' ride lengths remain more consistent.
+
+#### 5.1.4 Average ride length by customer type
+
+This graph visualizes the average ride length for different customer types (casual and member).
+Each bar represents a customer type, and the height of the bar corresponds to the average ride length.
+Bars are colored based on the customer type.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 1800, by = 300)
+y_labels <-c ("0", "5 min", "10 min", "15 min", "20 min", "25 min", "30 min")
+
+#Average ride length by customer type
+plot_1_05 <- ggplot(bike_avg_ride_length_member_type, aes(x = member_casual, y = avg_ride_length_member_type, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = ride_length_min_sec), vjust = -0.5) +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Customer type", y = "Average ride length", title = "Average ride length by customer type") +
+  theme_minimal()
+
+print(plot_1_05)
+ggsave("plot-1-05.png", plot = plot_1_05, width = 10, height = 6)
+```
+
+Casual rider trips are almost 10 minutes longer on average than Member rider trips.
+
+### 5.2 Ride count
+#### 5.2.1 Ride count by month, weekday, and customer type
+
+This graph visualizes the ride counts by day of the week across different months, categorized by by customer type (casual or member).
+Each subplot represents a month, showing the distribution of ride counts by day of the week.
+The x-axis represents the days of the week, while the y-axis represents the total ride count.
+Bars are colored based on the type of member.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 80000, by = 10000)
+y_labels <-c ("0", "10 000", "20 000", "30 000", "40 000", "50 000", "60 000", "70 000", "80 000")
+
+#Ride count by month, weekday, and customer type
+plot_2_06 <- ggplot(bike_ride_count, aes(x = day_of_week, y = ride_count, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Week day", y = "Ride count", title = "Ride count by month, weekday, and customer type") +
+  facet_wrap(~month, scales = "fixed") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_2_06)
+ggsave("plot-2-06.png", plot = plot_2_06, width = 10, height = 6)
+```
+Visualizing data for each month provides a quick grasp of trends:
+
+Members take more rides than Casual riders.
+
+Both groups tend to take more rides from late spring through fall.
+
+My attention was caught by August, particularly by a significant leap in ride count numbers for Member riders between Monday and Tuesday, and a notable decline in ride counts on Mondays for Casual riders. High numbers in ride counts between Monday and Friday are normal for Member riders, and August emerges as the most popular month for subscribed customers overall. Moreover, Members almost always display higher numbers on Mondays compared to Sundays. I suspect that something triggered a decline in ride counts for both groups on Mondays in August, which accentuated the difference in bar heights for Monday and Tuesday.
+
+I plan to examine August more closely after running a few more visualizations.
+
+
+#### 5.2.2 Ride count by month and customer type
+
+This chart illustrates the distribution of ride counts across different months, categorized by customer type (casual or member).
+Each bar represents the total number of rides taken during a specific month.
+The y-axis denotes the ride count, while the x-axis displays the months of the year.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 450000, by = 50000)
+y_labels <-c ("0", "50 000", "100 000", "150 000", "200 000", "250 000", "300 000", "350 000", "400 000", "450 000")
+
+#Ride count by month and customer type
+plot_2_07 <- ggplot(bike_ride_count_month, aes(x = month, y = ride_count_month, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Month", y = "Ride count", title = "Ride count by month and customer type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_2_07)
+ggsave("plot-2-07.png", plot = plot_2_07, width = 10, height = 6)
+```
+
+Both casual and member riders rent bicycles more frequently during the warmer seasons.
+To prevent errors and enhance readability for this data, I've decided to add two more charts to this section.
+
+##### 5.2.2.1 Top month by ride count and customer type
+
+The plots depict the distribution of ride counts among two distinct groups of riders: member riders and casual riders.
+Each bar represents the total number of rides taken by riders within specific months.
+The x-axis denotes the months, while the y-axis quantifies the ride count.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 450000, by = 50000)
+y_labels <-c ("0", "50 000", "100 000", "150 000", "200 000", "250 000", "300 000", "350 000", "400 000", "450 000")
+
+ordered_ride_count_month_member$month <- factor(ordered_ride_count_month_member$month, levels = ordered_ride_count_month_member$month[order(-ordered_ride_count_month_member$ride_count_month)])
+
+ordered_ride_count_month_casual$month <- factor(ordered_ride_count_month_casual$month, levels = ordered_ride_count_month_casual$month[order(-ordered_ride_count_month_casual$ride_count_month)])
+
+#Top Month by ride count for casual riders
+plot_2_08 <- ggplot(ordered_ride_count_month_member, aes(x = month, y = ride_count_month)) +
+  geom_bar(stat = "identity", fill = "#00BFC4") +
+  scale_y_continuous(limits = c(0, 450000), breaks = y_breaks, labels = y_labels, expand = c(0, 0)) +
+  labs(x = "Month", y = "Ride count", title = "Ride count by month for member riders") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_2_08)
+ggsave("plot-2-08.png", plot = plot_2_08, width = 10, height = 6)
+
+#Top Month by ride count for casual riders
+plot_2_09 <- ggplot(ordered_ride_count_month_casual, aes(x = month, y = ride_count_month)) +
+  geom_bar(stat = "identity", fill = "#F8766D") +
+  scale_y_continuous(limits = c(0, 450000), breaks = y_breaks, labels = y_labels, expand = c(0, 0)) +
+  labs(x = "Month", y = "Ride count", title = "Ride count by month for casual riders") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_2_09)
+ggsave("plot-2-09.png", plot = plot_2_09, width = 10, height = 6)
+```
+
+These charts further demonstrate the similarity in ride count distribution among different months.
+When comparing these charts, only the first and last two months change their order, while the order of months in the middle remains the same.
+
+\*To ensure a fair representation of the data, I aimed for both charts to share the same Y-axis values.
+Without manually setting the Y-axis limit, the division proportions appeared differently on each graph.
+This discrepancy could potentially create a false impression that the ride counts for both customer types are similar.
+Despite specifying 'breaks =', it was insufficient to resolve the issue with the Y-axis in these charts.
+
+#### 5.2.3 Ride count by weekday and customer type
+
+This graph displays the distribution of ride counts by day of the week.
+Bars are grouped by the type of customer (casual or member).
+
+```{r}
+#Variables
+y_breaks <- seq(0, 600000, by = 100000)
+y_labels <-c ("0", "100 000", "200 000", "300 000", "400 000", "500 000", "600 000")
+
+#Ride Count by weekday and customer type
+plot_2_10<- ggplot(bike_ride_count_week, aes(x = day_of_week, y = ride_count_week, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Week day", y = "Ride count", title = "Ride count by weekday and customer type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_2_10)
+ggsave("plot-2-10.png", plot = plot_2_10, width = 10, height = 6)
+```
+
+These charts illustrate the key difference between Casual and Member riders:
+
+Member riders ride more on workdays. Days with highest ride counts are Thursday (564 693), Wednesday (562 609) and Tuesday (553 433).
+Casual riders ride more on weekends. Days with highest ride counts are Saturday (392 349), Sunday (320 498) and Friday (298 460).
+
+
+
+#### 5.2.4 Ride count by hour, weekday and customer type
+
+This graphs illustrates the hourly distribution of ride counts on workdays and weekends, categorized by customer type.
+The x-axis represents the hours of the day, ranging from 0 to 23, while the y-axis denotes the ride count.
+Each line represents the trend of ride counts throughout the day for each customer type.
+The colors blue and red respectively indicate 'Casual' and 'Member' customers.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 325000, by = 25000)
+y_labels <- c("0", "25 000", "50 000", "75 000", "100 000", "125 000", "150 000", "175 000", "200 000", "225 000", "250 000", "275 000", "300 000", "325 000")
+
+#Hourly ride counts by customer type on workdays
+plot_2_11 <- ggplot() +
+  geom_line(aes(x = start_hour, y = ride_count, colour = "Casual"), size = 0.8, data = rides_by_hour_workdays_casual) +
+  geom_line(aes(x = start_hour, y = ride_count, colour = "Member"), size = 0.8, data = rides_by_hour_workdays_member) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_y_continuous(limits = c(0, 325000), breaks = y_breaks, labels = y_labels) +
+  labs(title = "Hourly ride counts by customer type on workdays", x = "Hours", y = "Ride count",) +
+  scale_color_manual(values = c("#F8766D", "#00BFC4"), labels = c("Casual", "Member"), name = "Customer type") +
+  theme_minimal()
+
+print(plot_2_11)
+ggsave("plot-2-11.png", plot = plot_2_11, width = 10, height = 6)
+
+#Hourly ride counts by customer type on workdays
+plot_2_12 <- ggplot() +
+  geom_line(aes(x = start_hour, y = ride_count, colour = "Casual"), size = 0.8, data = rides_by_hour_weekends_casual) +
+  geom_line(aes(x = start_hour, y = ride_count, colour = "Member"), size = 0.8, data = rides_by_hour_weekends_member) +
+  scale_x_continuous(breaks = 0:23) +
+  scale_y_continuous(limits = c(0, 325000), breaks = y_breaks, labels = y_labels) +
+  labs(title = "Hourly ride counts by customer type on weekends", x = "Hours", y = "Ride count",) +
+  scale_color_manual(values = c("#F8766D", "#00BFC4"), labels = c("Casual", "Member"), name = "Customer type") +
+  theme_minimal()
+
+print(plot_2_12)
+ggsave("plot-2-12.png", plot = plot_2_12, width = 10, height = 6)
+```
+There are two notable peaks in ride count during workdays for both groups:
+
+8:00
+Member riders: 206 460 rides
+Casual riders: 52 924 rides
+
+17:00
+Member riders: 310 870 rides
+Casual riders: 138 470 rides
+
+These peaks align with Chicago's rush hour schedule. According to a [source](https://www.rosenfeldinjurylawyers.com/news/rush-hour-chicago/#:~:text=Traffic%20tends%20to%20be%20the,sports%20venues%20during%20game%20days.), 'Traffic tends to be the worst around 6 AM to 8 AM and between 4 PM and 6 PM. Traffic jams are constant on Illinois expressways, with people trying to get in and out of the city.'
+
+At 16:00, Member riders will surpass their 8:00 ride count peak by 47 883 rides. Casual riders will have a total of 115 628 rides, which is 62 704 rides (a 118% increase) more than at 8:00.
+
+For Casual riders, the 8:00 threshold will also be surpassed at 12:00 with a total of 69 000 rides. Members also experience a slight increase in ride numbers at 12:00, but not as significant as the early morning and evening peaks.
+
+Trends during the weekend are also similar for Casual and Member riders, with ride counts peaking at 15:00 for both groups:
+
+Member riders: 65 592 rides
+Casual riders: 61 883 rides.
+
+#### 5.2.5 Ride count by customer type
+
+This graph presents the distribution of ride counts for different customer types (casual and member).
+Each segment represents a customer type, and the height of the bar indicates the total number of rides.
+Bars are colored based on the customer type.
+
+This pie chart visualizes the distribution of ride counts by customer type. Each segment of the pie represents a different customer type (member or casual), with the size of the segment indicating the proportion of rides attributed to each customer type. The chart provides a comparison of ride counts between member and casual customers.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 3500000, by = 500000)
+y_labels <-c ("0", "500 000", "1 000 000", "1 500 000", "2 000 000", "2 500 000", "3 000 000", "3 500 000")
+
+#Bar chart: Ride count by customer type
+plot_2_13 <- ggplot(bike_ride_count_member_type, aes(x = member_casual, y = ride_count_member_type, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Customer type", y = "Ride count", title = "Ride count by customer type") +
+  theme_minimal()
+
+print(plot_2_13)
+ggsave("plot-2-13.png", plot = plot_2_13, width = 10, height = 6)
+
+#Palette
+color_palette <- c("#F8766D", "#00BFC4")
+
+#Pie chart: Ride count by customer type
+plot_2_14 <- ggplot(bike_ride_count_member_type, aes(x = "", y = percentages_ride_count_member_type, fill = member_casual)) +
+  geom_col() +
+  geom_text(aes(label = labels_ride_count_member_type_perc),
+            position = position_stack(vjust = 0.5)) +
+  coord_polar(theta = "y") +
+  scale_fill_manual(values = color_palette) +
+  theme_minimal() +
+  labs(x = NULL, y = "Ride Count", 
+       fill = "Customer type", title = "Ride count by customer type")
+
+print(plot_2_14)
+ggsave("plot-2-14.png", plot = plot_2_14, width = 10, height = 6)
+
+```
+
+Members enjoy nearly twice as many rides as casual riders, with a total ride count of 3 508 685 compared to 1 970 110 for Casual riders.
+
+### 5.3 Investigating August
+
+My attention was caught by a significant leap in ride count numbers for Member riders between Monday and Tuesday, and a notable decline in ride counts on Mondays for Casual riders.
+
+High numbers in ride counts between Monday and Friday are normal for Member riders, and August emerges as the most popular month for subscribed customers overall.
+Moreover, Members almost always display higher numbers on Mondays compared to Sundays.
+I suspect that something triggered a decline in ride counts for both groups on Mondays in August, which accentuated the difference in bar heights for Monday and Tuesday.
+
+Let's filter out the data for August and examine it.
+Additionally, let's try to identify the root cause for this decline.
+
+```{r}
+#Filtering August
+august_member_casual <- bike_data_2023 %>%
+  filter(month == "August") %>%
+  mutate(date = as.Date(started_at))
+
+#print(august_member_casual)
+
+#August ride count for casual riders
+#Checking which monday had least ride counts for casuals in August
+august_casual_grouped <- august_member_casual %>%
+  filter(member_casual == "casual") %>%
+  group_by(date) %>%
+  summarise(ride_count = n())
+
+#print(august_casual_grouped)
+
+#August ride count for member riders
+august_member_grouped <- august_member_casual %>%
+  filter(member_casual == "member") %>%
+  group_by(date) %>%
+  summarise(ride_count = n())
+
+#print(august_member_grouped)
+```
+
+Events?
+I desided to explore what events could trigger data spikes by looking what [festivals](https://freetoursbyfoot.com/things-to-do-august-chicago/) took place during August.
+
+Several festivals and events occurred during August.
+These events include music festivals like the Jefferson Park Arts & Music Festival and Northalsted Market Days, food and drink festivals such as Taste of Chicago and Ribfest, neighborhood festivals like Edison Park Fest and Ginza Holiday Festival, and arts festivals like the Glenwood Avenue Arts Festival.
+
+Given that all these events occurred on weekends, it is improbable that they contributed to the decrease in ride counts on Mondays.
+
+Weather?
+
+According to the [Chicago weather forecast](https://world-weather.info/forecast/usa/chicago/august-2023/), there was a storm on both Monday the 14th and Saturday the 5th.
+The bad weather on Monday led to a decrease in ride counts for both rider groups as riders opted for alternative transportation options.
+
+These visualizations depict the ride count trends for both casual and member riders throughout August. Each graph illustrates the distribution of ride counts across different dates, with the x-axis indicating the date and the y-axis representing the total ride count. Bars are color-coded to distinguish between casual and member riders.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 20000, by = 2500)
+y_labels <-c ("0", "2 500", "5 000", "7 500", "10 000", "12 500", "15 000", "17 500", "20 000")
+
+#August ride count by casual riders
+plot_3_15 = ggplot(august_casual_grouped, aes(x = date, y = ride_count)) +
+  geom_bar(stat = "identity", fill = "#F8766D") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Date", y = "Ride count", title = "August ride count by casual riders") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_3_15)
+ggsave("plot-3-15.png", plot = plot_3_15, width = 10, height = 6)
+
+#August ride count by member riders
+plot_3_16 = ggplot(august_member_grouped, aes(x = date, y = ride_count)) +
+  geom_bar(stat = "identity", fill = "#00BFC4") +
+  scale_y_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(x = "Date", y = "Ride count", title = "August ride count by member riders") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_3_16)
+ggsave("plot-3-16.png", plot = plot_3_16, width = 10, height = 6)
+```
+
+The quick visualization of August daily ride counts indeed suggests that weather is likely to blame for the fluctuations.
+
+For Member riders, the two days with the lowest ride counts in August were Monday the 14th (6 830 ride counts) and Saturday the 5th (8 535 ride counts), both days with storms.
+
+Similarly, the ride counts for Casual riders were also impacted by storms on both Monday the 14th (2 656 ride counts) and Saturday the 5th (7 989 ride counts). The bar for Saturday the 5th is nearly half as small as the usual peaks observed on Saturdays for the Casual rider group.
+
+These charts once more highlight the consistent riding patterns of Members compared to Casual riders.
+
+### 5.4 Distribution of rideable types by customer type
+
+This pie chart visualizes the distribution of rideable types utilized by customers of Cyclistic bike-sharing service, categorized by customer type (casual and member).
+Each segment of the pie chart represents a combination of customer type and rideable type, indicating the proportion of rides associated with that combination.
+
+```{r}
+color_palette <- c("#BF5656","#F8766D", "#8C433E", "#009A9E", "#00BFC4")
+
+plot_4_17 <- ggplot(rideable_summary, aes(x = "", y = percentages_rideable_type, fill = lab_name)) +
+  geom_col() +
+  geom_text(aes(label = labels_rideable_type_perc),
+            position = position_stack(vjust = 0.5)) +
+  coord_polar(theta = "y") +
+  scale_fill_manual(values = color_palette) +
+  theme_minimal() +
+  labs(x = NULL, y = "Readable type distribution", 
+       fill = "Customer type", title = "Distribution of rideable types among member & casual riders")
+
+print(plot_4_17)
+ggsave("plot-4-17.png", plot = plot_4_17, width = 10, height = 6)
+```
+
+Members equally prefer classic and electric bikes.
+However, according to the data, Casual riders tend to ride electric bikes slightly more frequently compared to classic bikes.
+It's also worth noting that only Casual riders used docked bikes in 2023.
+
+### 5.6 Top 15 Most popular stations by ride count
+
+This bar graph illustrates the top 15 stations ranked by the number of rides initiated from each station. Each bar represents a station, with the height indicating the total ride count. Stations are ordered from top to bottom based on their ride count, with the station boasting the highest number of rides positioned at the top. The x-axis displays the ride count, while the y-axis denotes the station names.
+
+```{r}
+#Variables
+y_breaks <- seq(0, 65000, by = 5000)
+y_labels <-c ("0", "5 000", "10 000", "15 000", "20 000", "25 000", "30 000", "35 000", "40 000", "45 000", "50 000", "55 000", "60 000", "65 000")
+
+
+#Variables
+y_breaks <- seq(0, 70000, by = 10000)
+y_labels <-c ("0", "10 000", "20 000", "30 000", "40 000", "50 000", "60 000", "70 000")
+#Ordering Stations
+ordered_station_top <- transform(station_top, start_station_name = factor(start_station_name, levels = station_top$start_station_name[order(station_top$ride_count, decreasing = TRUE)]))
+ordered_station_top$start_station_name <- fct_reorder(station_top$start_station_name, station_top$ride_count, .desc = FALSE)
+
+##Top 15 popular stations
+plot_5_18 <- ggplot(ordered_station_top, aes(x = ride_count, y = start_station_name)) +
+  geom_bar(stat = "identity", fill = "#8C433E", width = 0.5) +
+  scale_x_continuous(breaks = y_breaks, labels = y_labels) +
+  labs(y = "Station name", x = "Ride count", title = "Top 15 most popular stations") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot_5_18)
+ggsave("plot-5-18.png", plot = plot_5_18, width = 10, height = 6)
+```
+01. Streeter Dr & Grand Ave - 61 472
+02. DuSable Lake Shore Dr & Monroe St - 37 210
+
+30 000 - 35 000
+03. Michigan Ave & Oak St
+04. DuSable Lake Shore Dr & North Blvd
+05. Clark St & Elm St
+06. Wells St & Concord Ln
+07. Kingsbury St & Kinzie St
+
+25 000 - 30 000
+08. Theater on the Lake
+09. Clinton St & Washington Blvd
+10. Millennium Park
+11. Broadway & Barry Ave
+12. University Ave & 57th St
+13. Wells St & Elm St
+14. Wilton Ave & Belmont Ave
+15. Clark St & Armitage Ave
+
+### ANALYSIS SUMMARY
+
+**How do annual members and casual riders use Cyclistic bikes differently?**
+
+The difference in ride frequency between annual members and casual riders can be attributed to the distinct payment structures they operate under.
+
+Annual members, benefiting from an unlimited pass, are able to take advantage of the bikes without incurring additional costs per ride.
+This unrestricted access encourages them to utilize the bikes more frequently, incorporating them into various aspects of their daily routines.
+
+Conversely, casual riders, who are charged for each trip, approach bike usage with a more selective mindset.
+They may reserve their rides for specific occasions or longer journeys where they can maximize the value of each paid trip.
+
+Overall, annual members and casual riders demonstrate different usage patterns, with annual members using Cyclistic bikes more frequently for commuting or short trips, while casual riders tend to use them for longer, leisurely rides, especially during weekends and warmer months.
+
+*The data for Casual riders did not include information about whether they purchased a single pass or a full-day pass. Collecting this data will provide further insights into differences between Cyclistic riders.
+
+## 6. ACT
+With the insights gathered from analyzing Cyclistic customer behaviors, the marketing team devised an effective strategy to encourage more casual riders to become full-time Cyclistic members.
+
+## Commentary
+
+This project has changed my opinion about R.
+Initially, I wanted to conduct my analysis using SQL, but I quickly ran out of free space on my BigQuery account, so I decided to go with R instead.
+Surprisingly, I really enjoyed the whole process, despite R being my least favorite module to complete in the Google Data Analytics course.
+The Capstone project helped me get used to the interface and writing comments.
+The document structure that comes with the RMD format really helps keep the workspace organized and allows quick navigation between different sections.
+Apart from deriving insights from the data, I strived to maintain consistency in both my documentation and code throughout this analysis.
+This ensures clear and coherent presentation of results, but also promotes organized workflow for future reference.
+
+*Version 002*
+*Reconsider scale values for some charts.*
+
+
+```{r}
+write.csv(bike_data_2023, "bike_data_2023.csv", row.names = FALSE)
+```
