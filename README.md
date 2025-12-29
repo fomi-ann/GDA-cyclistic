@@ -20,7 +20,7 @@ Here’s an overview of the files and folders in this repository:
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `cyclistic_bike_case_study_anna_fomina.html` | **Knitted Full Case Study**: A detailed analysis report including methodology, analysis, and insights.                |
 | `cyclistic_bike_case_study_anna_fomina.rmd`  | **R Notebook**: The R Markdown file used to generate the HTML report, showcasing the analysis code.                   |
-| `GDA-cyclistic-case-study-fomina-slides`     | **Presentation Slides**: A concise summary of the project, featuring graphs, a project description, and key findings. |
+| [GDA-cyclistic-case-study-fomina-slides](https://github.com/fomi-ann/GDA-cyclistic/blob/main/GDA-cyclistic-case-study-fomina-slides.pdf)     | **Presentation Slides**: A concise summary of the project, featuring graphs, a project description, and key findings. |
 | `plots/`                                     | **Plots Folder**: Contains all visualizations and charts created during the analysis.                                 |
 
 ---
